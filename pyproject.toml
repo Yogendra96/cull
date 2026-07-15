@@ -1,0 +1,34 @@
+[project]
+name = "cull"
+version = "0.2.0"
+description = "AI-powered orphan image cleaner — classify, organise, deduplicate, and clean up image collections using CLIP zero-shot vision"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = [
+    "open-clip-torch>=2.29",
+    "torch>=2.0",
+    "torchvision>=0.15",
+    "Pillow>=11.0",
+    "fire>=0.7",
+    "rich>=13.0",
+    "tqdm>=4.67",
+    "gradio>=6.14.0",
+    "imagehash>=4.3",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+cull = "cull.__main__:main"
+
+[project.optional-dependencies]
+gui = ["gradio>=5.0"]
+browse = ["streamlit>=1.38"]
+all = ["cull[gui,browse]"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["cull*"]
