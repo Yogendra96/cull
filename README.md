@@ -2,7 +2,7 @@
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
   <img src="https://img.shields.io/badge/CLIP-ViT--L--14-orange" alt="CLIP ViT-L-14">
-  <img src="https://img.shields.io/badge/macOS-M2%20Pro-999999" alt="M2 Pro">
+  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-999999" alt="macOS | Linux | Windows">
 </p>
 
 # cull — AI-powered orphan image cleaner
@@ -14,7 +14,7 @@
 cull classify ~/Downloads/messy/          # scan & classify with CLIP
 cull organize --execute                   # sort into category folders
 cull dedup sorted/ --execute              # move near-duplicates aside
-cull cleanup --strategy trash --execute   # reclaim 4.6 GB of duplicates
+cull cleanup --strategy trash --execute   # reclaim disk space from duplicates
 cull volumes                              # list external drives
 cull gui                                  # launch web interface
 ```
@@ -24,13 +24,15 @@ cull gui                                  # launch web interface
 ## Features
 
 - **Zero-shot classification** — CLIP ViT-L-14 (or ViT-B-32) categorises images without any training data
-- **22 categories** — person, screenshot, meme, document, food, landscape, animal, NSFW, video call, etc.
-- **Perceptual dedup** — `imagehash.dhash` finds near-duplicates, moves them aside
-- **External drive support** — auto-detect mounted volumes, validate mounts, safe eject
+- **21 categories** — person, screenshot, meme, document, food, landscape, animal, NSFW, video call, etc. (plus PDF by extension)
+- **Custom categories** — extend or override the built-ins with a YAML file
+- **Perceptual dedup** — `imagehash.dhash` on images; videos hashed via an extracted frame
+- **External drive support** — auto-detect mounted volumes (macOS / Linux / Windows), mount validation before every run, safe eject on macOS
+- **Cleanup strategies** — trash, permanent delete, or list-only, optionally per category
 - **Dry-run by default** — every destructive operation requires explicit `--execute`
 - **Dual interface** — CLI via `fire` + Gradio web GUI + Streamlit report viewer
-- **Video & PDF** — single-frame extraction for videos, extension-based PDF detection
-- **macOS MPS accelerated** — ~11 img/s on M2 Pro with ViT-L-14
+- **Video & PDF** — frame extraction for videos (classification and dedup), extension-based PDF detection
+- **Hardware accelerated** — MPS (Apple Silicon), CUDA, or CPU; ~11 img/s with ViT-L-14 on M-series
 
 ---
 
@@ -83,12 +85,13 @@ cull volumes --eject MyUSB            # safe eject when done
 | `classify <path>` | Scan & classify images with CLIP | `--threshold 0.3` |
 | `organize` | Move/copy into category folders | dry-run |
 | `dedup <path>` | Find & move near-duplicates | dry-run |
-| `cleanup` | Remove/trash duplicates | dry-run, `--strategy trash` |
+| `cleanup` | Remove/trash duplicates (`--strategy trash\|delete\|list`, `--category X`) | dry-run, `--strategy trash` |
 | `volumes [--eject X]` | List & eject external drives | — |
 | `gui` | Launch Gradio web interface | — |
 | `browse [--report]` | Launch Streamlit viewer | — |
 | `categories` | Print available labels | — |
 | `delete --category X` | Legacy bulk-delete | dry-run |
+| `version` | Print version | — |
 
 ### classify options
 
@@ -99,6 +102,22 @@ cull volumes --eject MyUSB            # safe eject when done
 | `--model` | `ViT-B-32` | CLIP variant (`ViT-L-14` for accuracy) |
 | `--pretrained` | `laion2b_s34b_b79k` | Weights tag |
 | `--include-media` | `False` | Also classify videos and PDFs |
+| `--categories` | `None` | YAML file with custom category definitions |
+
+### Custom categories
+
+Define your own categories in a YAML file — they merge with the built-in set:
+
+```yaml
+# my_categories.yaml
+categories:
+  receipt: ["a receipt", "a scanned receipt"]
+  whiteboard: ["a whiteboard with writing"]
+```
+
+```bash
+cull classify ./photos/ --categories my_categories.yaml
+```
 
 ---
 
@@ -148,7 +167,7 @@ cull/
 ├── dedup.py          Perceptual hashing dedup
 ├── cleanup.py        Duplicate cleanup strategies
 ├── volumes.py        External drive support
-├── reporter.py       JSON report + terminal table
+├── report.py         JSON report + terminal table
 ├── gui.py            Gradio web interface
 ├── browse.py         Streamlit report viewer
 └── delete.py         Legacy bulk-delete
@@ -168,9 +187,9 @@ cull/
 ## Requirements
 
 - **Python 3.10+**
-- **macOS** (primary; Linux/Windows work with reduced volume support)
-- **~2 GB disk** for CLIP ViT-L-14 model cache (optional, ViT-B-32 is ~600 MB)
-- **ffmpeg** (optional, for video frame extraction)
+- **macOS, Linux, or Windows** — volume discovery works on all three; eject uses `diskutil` (macOS-only)
+- **~2 GB disk** for the CLIP ViT-L-14 model cache on first run (ViT-B-32 is ~600 MB)
+- **ffmpeg** (optional, required for video frame extraction)
 
 ---
 
@@ -195,5 +214,5 @@ Run tests:
 
 ```bash
 uv pip install pytest
-pytest tests/
+uv run pytest
 ```

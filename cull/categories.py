@@ -11,7 +11,6 @@ defaults — new categories are added, existing ones are overridden.
 
 import logging
 from pathlib import Path
-from typing import Optional
 
 import yaml
 
@@ -40,13 +39,21 @@ IMAGE_CATEGORIES: dict[str, list[str]] = {
 # ── Video categories ─────────────────────────────────────────────────
 
 VIDEO_CATEGORIES: dict[str, list[str]] = {
-    "screencast": ["a screencast video", "a screen recording", "a software tutorial video"],
+    "screencast": [
+        "a screencast video",
+        "a screen recording",
+        "a software tutorial video",
+    ],
     "movie_clip": ["a movie clip", "a television show clip", "a scene from a film"],
     "animation": ["an animated video", "a cartoon", "an animated short"],
     "video_call": ["a video call recording", "a selfie video", "a video message"],
     "gaming": ["a gaming video", "a gameplay recording"],
     "short_clip": ["a short social media clip", "a status video", "a reel"],
-    "nsfw_video": ["an explicit video", "adult content video", "not safe for work video"],
+    "nsfw_video": [
+        "an explicit video",
+        "adult content video",
+        "not safe for work video",
+    ],
 }
 
 # ── Combined lookup ──────────────────────────────────────────────────
@@ -113,13 +120,15 @@ def load_categories_yaml(path: str | Path) -> dict[str, list[str]]:
 
     cats = data["categories"]
     if not isinstance(cats, dict):
-        raise ValueError("'categories' must be a mapping (dict)")
+        raise TypeError("'categories' must be a mapping (dict)")
 
     validated: dict[str, list[str]] = {}
     for name, prompts in cats.items():
         if isinstance(prompts, str):
             prompts = [prompts]
-        if not isinstance(prompts, list) or not all(isinstance(p, str) for p in prompts):
+        if not isinstance(prompts, list) or not all(
+            isinstance(p, str) for p in prompts
+        ):
             raise ValueError(
                 f"Category {name!r}: prompts must be a string or list of strings"
             )
@@ -129,7 +138,7 @@ def load_categories_yaml(path: str | Path) -> dict[str, list[str]]:
 
 
 def merge_with_defaults(
-    custom: Optional[dict[str, list[str]]] = None,
+    custom: dict[str, list[str]] | None = None,
 ) -> dict[str, list[str]]:
     """Merge custom categories with the built-in defaults.
 
@@ -155,6 +164,7 @@ def merge_with_defaults(
 
 
 # ── Validation helpers ───────────────────────────────────────────────
+
 
 def validate_categories(categories: dict[str, list[str]]) -> list[str]:
     """Return a list of validation warnings for a category dictionary."""

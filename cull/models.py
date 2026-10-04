@@ -6,10 +6,9 @@ loaded weights without re-initialising.
 """
 
 import logging
-from typing import Optional
-
-import torch
+from typing import Callable, Optional
 import open_clip
+import torch
 from PIL import Image
 
 logger = logging.getLogger("cull.models")
@@ -17,11 +16,11 @@ logger = logging.getLogger("cull.models")
 
 # ── Module-level caches (singleton) ──────────────────────────────────
 
-_model: Optional[open_clip.CLIP] = None
-_tokenizer: Optional[callable] = None
-_preprocess: Optional[callable] = None
-_current_model_name: Optional[str] = None
-_current_pretrained: Optional[str] = None
+_model: open_clip.CLIP | None = None
+_tokenizer: Callable | None = None
+_preprocess: Callable | None = None
+_current_model_name: str | None = None
+_current_pretrained: str | None = None
 
 
 def _resolve_device() -> str:
@@ -64,11 +63,14 @@ def load_model(
     device = _resolve_device()
     logger.info(
         "Loading model — device=%s model=%s pretrained=%s",
-        device, model_name, pretrained,
+        device,
+        model_name,
+        pretrained,
     )
 
     model, _, preprocess = open_clip.create_model_and_transforms(
-        model_name, pretrained=pretrained,
+        model_name,
+        pretrained=pretrained,
     )
     model = model.to(device).eval()
     tokenizer = open_clip.get_tokenizer(model_name)
@@ -123,8 +125,10 @@ def classify_batch(
 
     results = []
     for row in scores:
-        indexed = [{"category": labels[i], "score": float(row[i])} for i in range(len(labels))]
-        indexed.sort(key=lambda x: x["score"], reverse=True)
+        indexed = [
+            {"category": labels[i], "score": float(row[i])} for i in range(len(labels))
+        ]
+        indexed.sort(key=lambda x: x["score"], reverse=True)  # type: ignore[arg-type, return-value]
         results.append(indexed)
 
     return results

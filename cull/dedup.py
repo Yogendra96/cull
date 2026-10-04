@@ -9,18 +9,17 @@ approximation.
 
 import logging
 import shutil
-import tempfile
 from collections import defaultdict
 from pathlib import Path
 
-from PIL import Image
 import imagehash
+from PIL import Image
 
 from cull.media import (
-    is_video,
-    is_pdf,
-    should_skip,
     extract_video_frame,
+    is_pdf,
+    is_video,
+    should_skip,
 )
 from cull.volumes import validate_mount
 
@@ -50,7 +49,7 @@ def _hash_file(path: Path) -> str | None:
         h = str(imagehash.dhash(img))
         img.close()
         return h
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001  # intentional — any hash failure is non-fatal
         logger.debug("Failed to hash %s: %s", path, exc)
         return None
 
@@ -107,13 +106,13 @@ def deduplicate(
         print(f"⚠️  Warning — scan directory may be unreachable: {msg}")
 
     if dupes_dir is None:
-        dupes_dir = scan_path.parent / "duplicates"
-    dupes_path = Path(dupes_dir)
+        dupes_path = scan_path.parent / "duplicates"
+    else:
+        dupes_path = Path(dupes_dir)
     dupes_path.mkdir(parents=True, exist_ok=True)
 
     all_files = sorted(
-        f for f in scan_path.rglob("*")
-        if f.is_file() and not should_skip(f.name)
+        f for f in scan_path.rglob("*") if f.is_file() and not should_skip(f.name)
     )
 
     print(f"Scanning {len(all_files)} files in {scan_path}...")
@@ -144,7 +143,9 @@ def deduplicate(
             dest.parent.mkdir(parents=True, exist_ok=True)
 
             if dry_run:
-                print(f"  [would move] {rel}  (duplicate of {keep.relative_to(scan_path)})")
+                print(
+                    f"  [would move] {rel}  (duplicate of {keep.relative_to(scan_path)})"
+                )
             else:
                 try:
                     shutil.move(str(dup), str(dest))

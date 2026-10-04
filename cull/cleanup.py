@@ -4,11 +4,8 @@ Provides safe strategies for dealing with the duplicate files that
 ``dedup`` moved aside, including dry-run mode and trash integration.
 """
 
-import json
 import shutil
-import subprocess
 from pathlib import Path
-from typing import Optional
 
 from cull import config
 
@@ -70,7 +67,12 @@ def report_duplicates(dupes_dir: str | None = None) -> dict:
     """
     dupes_path = _resolve_dupes_dir(dupes_dir)
     if not dupes_path.exists():
-        return {"total_files": 0, "total_bytes": 0, "categories": {}, "dir": str(dupes_path)}
+        return {
+            "total_files": 0,
+            "total_bytes": 0,
+            "categories": {},
+            "dir": str(dupes_path),
+        }
 
     summary: dict[str, dict] = {}
     total_files = 0
@@ -96,7 +98,7 @@ def report_duplicates(dupes_dir: str | None = None) -> dict:
 def delete_duplicates(
     dupes_dir: str | None = None,
     strategy: str = "trash",
-    category: Optional[str] = None,
+    category: str | None = None,
     dry_run: bool = True,
 ) -> dict:
     """Remove or trash duplicate files.
@@ -135,7 +137,9 @@ def delete_duplicates(
     # Dry-run
     if dry_run:
         total_bytes = sum(f.stat().st_size for f in targets)
-        print(f"\nDry run — would remove {len(targets)} files ({total_bytes / 1_000_000:.1f} MB)")
+        print(
+            f"\nDry run — would remove {len(targets)} files ({total_bytes / 1_000_000:.1f} MB)"
+        )
         print(f"Strategy: {strategy}")
         print("Run with --execute to actually clean up.")
         return {"removed": 0, "bytes_freed": 0, "strategy": strategy}

@@ -1,7 +1,5 @@
 import json
-from pathlib import Path
-from collections import Counter, defaultdict
-from typing import Optional
+from collections import defaultdict
 
 
 def generate_report(results: list[dict], threshold: float = 0.3) -> dict:
@@ -53,9 +51,7 @@ def print_summary(report: dict) -> None:
     table.add_column("Count", justify="right")
     table.add_column("%", justify="right")
 
-    for cat, info in sorted(
-        report["categories"].items(), key=lambda x: -x[1]["count"]
-    ):
+    for cat, info in sorted(report["categories"].items(), key=lambda x: -x[1]["count"]):
         pct = info["count"] / max(report["total"], 1) * 100
         table.add_row(cat, str(info["count"]), f"{pct:.1f}")
 

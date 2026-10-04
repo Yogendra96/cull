@@ -6,9 +6,9 @@ import pytest
 
 from cull.media import (
     is_image,
-    is_video,
     is_pdf,
     is_supported,
+    is_video,
     should_skip,
 )
 

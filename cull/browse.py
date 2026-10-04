@@ -5,8 +5,8 @@ Displays classified images in a filterable thumbnail grid with per-file
 delete checkboxes.
 """
 
-import sys
 import json
+import sys
 from pathlib import Path
 
 import streamlit as st
@@ -64,7 +64,7 @@ for i, entry in enumerate(all_files):
             try:
                 img = Image.open(fp)
                 st.image(img, width=200)
-            except Exception:
+            except (OSError, Image.UnidentifiedImageError):
                 st.caption("(failed to load)")
         else:
             st.caption("(non-image or missing)")

@@ -7,15 +7,22 @@ videos/PDFs, but not about CLI flags or output formatting.
 """
 
 import logging
+from collections.abc import Callable
 from pathlib import Path
-from typing import Optional, Callable
 
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 
-from cull.media import is_video, is_pdf, extract_video_frame, should_skip, SUPPORTED_IMAGE_EXTS, SUPPORTED_EXTS
-from cull.categories import DEFAULT_CATEGORIES, NON_CLIP_CATEGORIES
-from cull.models import classify_batch
 from cull import config
+from cull.categories import DEFAULT_CATEGORIES
+from cull.media import (
+    SUPPORTED_EXTS,
+    SUPPORTED_IMAGE_EXTS,
+    extract_video_frame,
+    is_pdf,
+    is_video,
+    should_skip,
+)
+from cull.models import classify_batch
 
 logger = logging.getLogger("cull.classify")
 
@@ -53,12 +60,12 @@ def collect_files(
 
 def classify_directory(
     image_paths: list[str],
-    labels: Optional[list[str]] = None,
+    labels: list[str] | None = None,
     batch_size: int = config.DEFAULT_BATCH_SIZE,
     top_k: int = config.DEFAULT_TOP_K,
     model_name: str = config.DEFAULT_MODEL,
     pretrained: str = config.DEFAULT_PRETRAINED,
-    progress_callback: Optional[Callable[[int, int], None]] = None,
+    progress_callback: Callable[[int, int], None] | None = None,
 ) -> list[dict]:
     """Classify a list of image paths using CLIP zero-shot.
 
@@ -86,8 +93,6 @@ def classify_directory(
     temp_files: list[str] = []
 
     # Non-CLIP categories (e.g. PDFs) are handled by extension
-    non_clip = NON_CLIP_CATEGORIES
-
     for i in range(0, total, batch_size):
         batch = image_paths[i : i + batch_size]
         batch_images: list[Image.Image] = []
@@ -97,10 +102,12 @@ def classify_directory(
             try:
                 # PDFs — classified by extension, skip CLIP
                 if is_pdf(p):
-                    results.append({
-                        "path": p,
-                        "scores": [{"category": "pdf", "score": 1.0}],
-                    })
+                    results.append(
+                        {
+                            "path": p,
+                            "scores": [{"category": "pdf", "score": 1.0}],
+                        }
+                    )
                     continue
 
                 # Videos — extract a single frame for CLIP
@@ -117,7 +124,7 @@ def classify_directory(
                 batch_images.append(img)
                 valid_paths.append(p)
 
-            except Exception:
+            except (OSError, UnidentifiedImageError):
                 results.append({"path": p, "error": "failed to open"})
 
         if not batch_images:
@@ -127,15 +134,19 @@ def classify_directory(
 
         # Run CLIP on the valid images in this batch
         all_scores = classify_batch(
-            batch_images, labels,
-            model_name=model_name, pretrained=pretrained,
+            batch_images,
+            labels,
+            model_name=model_name,
+            pretrained=pretrained,
         )
 
         for j, scores in enumerate(all_scores):
-            results.append({
-                "path": valid_paths[j],
-                "scores": scores[:top_k],
-            })
+            results.append(
+                {
+                    "path": valid_paths[j],
+                    "scores": scores[:top_k],
+                }
+            )
 
         if progress_callback:
             progress_callback(min(i + batch_size, total), total)
@@ -146,6 +157,8 @@ def classify_directory(
 
     success = sum(1 for r in results if "error" not in r)
     failed = sum(1 for r in results if "error" in r)
-    logger.info("Classification done — ok=%d failed=%d total=%d", success, failed, total)
+    logger.info(
+        "Classification done — ok=%d failed=%d total=%d", success, failed, total
+    )
 
     return results

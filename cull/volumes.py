@@ -10,7 +10,6 @@ import string
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
 from cull import config
 
@@ -63,7 +62,7 @@ def validate_mount(path: str | Path) -> tuple[bool, str]:
     return True, "Path is accessible"
 
 
-def get_volume_for_path(path: str | Path) -> Optional[dict]:
+def get_volume_for_path(path: str | Path) -> dict | None:
     """Return the volume dict for the volume that contains *path*.
 
     Returns ``None`` if the path is on the internal drive or unmounted.
@@ -102,7 +101,9 @@ def safe_eject(volume_path: str | Path, force: bool = False) -> tuple[bool, str]
     cmd.append(str(vol))
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=30, check=False
+        )
         if result.returncode == 0:
             return True, f"Ejected {vol.name}"
         return False, result.stderr.strip() or "Eject failed"
@@ -110,7 +111,7 @@ def safe_eject(volume_path: str | Path, force: bool = False) -> tuple[bool, str]
         return False, "diskutil not found (only available on macOS)"
     except subprocess.TimeoutExpired:
         return False, "Eject timed out (volume may be busy)"
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001  # safety net for unexpected eject errors
         return False, f"Eject error: {exc}"
 
 
@@ -134,8 +135,14 @@ def format_volume_summary() -> str:
 
 
 MACOS_SYSTEM_VOLUMES = {
-    "Macintosh HD", "Recovery", "VM", "Preboot", "Update",
-    "macOS Base System", "macOS Install Data", "UpdateBundle",
+    "Macintosh HD",
+    "Recovery",
+    "VM",
+    "Preboot",
+    "Update",
+    "macOS Base System",
+    "macOS Install Data",
+    "UpdateBundle",
 }
 
 
@@ -166,6 +173,7 @@ def _windows_volumes() -> list[dict]:
     volumes: list[dict] = []
     try:
         import ctypes
+
         DRIVE_REMOVABLE = 2
         get_drive_type = ctypes.windll.kernel32.GetDriveTypeW
         for letter in string.ascii_uppercase[1:]:  # B: through Z:
@@ -174,28 +182,32 @@ def _windows_volumes() -> list[dict]:
             if drive_type == DRIVE_REMOVABLE:
                 vol_path = Path(root_path)
                 if vol_path.exists():
-                    volumes.append({
-                        "name": f"{letter}:",
-                        "path": root_path,
-                        "is_internal": False,
-                        "is_readonly": not os.access(root_path, os.W_OK),
-                        "mount_point": root_path,
-                        "filesystem": "?",
-                    })
+                    volumes.append(
+                        {
+                            "name": f"{letter}:",
+                            "path": root_path,
+                            "is_internal": False,
+                            "is_readonly": not os.access(root_path, os.W_OK),
+                            "mount_point": root_path,
+                            "filesystem": "?",
+                        }
+                    )
     except (ImportError, AttributeError):
         # ctypes not available or not Windows — fall back to path check
         for letter in string.ascii_uppercase[1:]:
             root_path = f"{letter}:\\"
             vol_path = Path(root_path)
             if vol_path.exists():
-                volumes.append({
-                    "name": f"{letter}:",
-                    "path": root_path,
-                    "is_internal": False,
-                    "is_readonly": not os.access(root_path, os.W_OK),
-                    "mount_point": root_path,
-                    "filesystem": "?",
-                })
+                volumes.append(
+                    {
+                        "name": f"{letter}:",
+                        "path": root_path,
+                        "is_internal": False,
+                        "is_readonly": not os.access(root_path, os.W_OK),
+                        "mount_point": root_path,
+                        "filesystem": "?",
+                    }
+                )
     return volumes
 
 
@@ -207,21 +219,23 @@ def _linux_volumes() -> list[dict]:
             continue
         for child in base.iterdir():
             if child.is_dir() and not child.name.startswith("."):
-                volumes.append({
-                    "name": child.name,
-                    "path": str(child),
-                    "is_internal": False,
-                    "is_readonly": not os.access(str(child), os.W_OK),
-                    "mount_point": str(child),
-                    "filesystem": "?",
-                })
+                volumes.append(
+                    {
+                        "name": child.name,
+                        "path": str(child),
+                        "is_internal": False,
+                        "is_readonly": not os.access(str(child), os.W_OK),
+                        "mount_point": str(child),
+                        "filesystem": "?",
+                    }
+                )
     return volumes
 
 
-def _volume_info(mount_path: Path) -> Optional[dict]:
+def _volume_info(mount_path: Path) -> dict | None:
     """Build a volume info dict for *mount_path*."""
     try:
-        stat = mount_path.stat()
+        mount_path.stat()
         # Basic info without shelling out
         info: dict = {
             "name": mount_path.name,
@@ -232,11 +246,11 @@ def _volume_info(mount_path: Path) -> Optional[dict]:
             "filesystem": "?",
         }
 
-        # Try to get filesystem type via statvfs
+        # Try to get filesystem type via statvfs (best-effort)
         try:
             svfs = os.statvfs(str(mount_path))
             info["filesystem"] = _guess_fs(svfs)
-        except Exception:
+        except Exception:  # noqa: S110, BLE001  # best-effort
             pass
 
         return info

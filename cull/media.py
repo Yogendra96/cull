@@ -5,31 +5,53 @@ Also handles external volume discovery, mount validation, and safe ejection.
 """
 
 import os
-import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Optional
 
 from PIL import Image
 
 # ── File extension sets (single source of truth) ──────────────────────
 
 IMAGE_EXTS = {
-    ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp",
-    ".tiff", ".tif", ".heic", ".heif", ".avif", ".jxl",
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".gif",
+    ".webp",
+    ".bmp",
+    ".tiff",
+    ".tif",
+    ".heic",
+    ".heif",
+    ".avif",
+    ".jxl",
 }
 
 VIDEO_EXTS = {
-    ".mp4", ".mov", ".avi", ".mkv", ".webm",
-    ".wmv", ".flv", ".m4v", ".3gp", ".ts",
+    ".mp4",
+    ".mov",
+    ".avi",
+    ".mkv",
+    ".webm",
+    ".wmv",
+    ".flv",
+    ".m4v",
+    ".3gp",
+    ".ts",
 }
 
 PDF_EXTS = {".pdf"}
 
 DOC_EXTS = {
-    ".doc", ".docx", ".xls", ".xlsx",
-    ".ppt", ".pptx", ".txt", ".rtf",
+    ".doc",
+    ".docx",
+    ".xls",
+    ".xlsx",
+    ".ppt",
+    ".pptx",
+    ".txt",
+    ".rtf",
 }
 
 ARCHIVE_EXTS = {".zip", ".rar", ".tar", ".gz", ".7z"}
@@ -43,6 +65,7 @@ SKIP_FILES = {".DS_Store", ".localized", ".Trashes", ".fseventsd", ".Spotlight-V
 
 
 # ── File type predicates ─────────────────────────────────────────────
+
 
 def is_image(path: str | Path) -> bool:
     return Path(path).suffix.lower() in IMAGE_EXTS
@@ -68,24 +91,31 @@ def should_skip(name: str) -> bool:
 
 # ── Media processing ─────────────────────────────────────────────────
 
-def extract_video_frame(path: str | Path) -> Optional[str]:
+
+def extract_video_frame(path: str | Path) -> str | None:
     """Extract a single frame from a video using ffmpeg.
 
     Returns the path to a temporary JPEG file, or None on failure.
     The caller is responsible for cleaning up the temp file.
     """
-    out = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False)
+    # We need delete=False so ffmpeg can write to the temp file
+    # before we read it back.  SIM115 is suppressed because a
+    # context manager with delete=False would also leave the file
+    # around and the `.close()` then reuse pattern is the standard
+    # approach for ffmpeg frame extraction.
+    out = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False)  # noqa: SIM115
     out.close()
     try:
         subprocess.run(
             ["ffmpeg", "-y", "-i", str(path), "-vframes", "1", "-q:v", "3", out.name],
             capture_output=True,
             timeout=30,
+            check=False,
         )
         img = Image.open(out.name)
         img.verify()
         return out.name
-    except Exception:
+    except (OSError, subprocess.TimeoutExpired):
         Path(out.name).unlink(missing_ok=True)
         return None
 
@@ -112,14 +142,15 @@ def list_volumes() -> list[dict]:
         if child.name == "Macintosh HD":
             continue
         try:
-            stat = child.stat()
-            volumes.append({
-                "name": child.name,
-                "path": str(child),
-                "is_internal": False,
-                "is_readonly": not os.access(str(child), os.W_OK),
-                "mount_point": str(child),
-            })
+            volumes.append(
+                {
+                    "name": child.name,
+                    "path": str(child),
+                    "is_internal": False,
+                    "is_readonly": not os.access(str(child), os.W_OK),
+                    "mount_point": str(child),
+                }
+            )
         except OSError:
             # Permission error or disappeared mount — skip
             continue
@@ -143,7 +174,7 @@ def validate_mount(path: str | Path) -> tuple[bool, str]:
             if parent == MACOS_VOLUMES_ROOT or parent.parent == MACOS_VOLUMES_ROOT:
                 # The path is on a volume — check it's still mounted
                 if not p.stat():
-                    return False, f"Volume appears to be unmounted: path inaccessible"
+                    return False, "Volume appears to be unmounted: path inaccessible"
                 return True, "Path is accessible"
         # Path is on the internal drive
         return True, "Path on internal drive"
@@ -151,7 +182,7 @@ def validate_mount(path: str | Path) -> tuple[bool, str]:
         return False, f"Cannot access path: {exc}"
 
 
-def get_volume_for_path(path: str | Path) -> Optional[dict]:
+def get_volume_for_path(path: str | Path) -> dict | None:
     """Return the volume dict for the volume containing *path*, or None."""
     p = Path(path).resolve()
     volumes = list_volumes()
@@ -177,7 +208,9 @@ def safe_eject(volume_path: str | Path, force: bool = False) -> tuple[bool, str]
         cmd = ["diskutil", "eject", str(vol)]
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=30, check=False
+        )
         if result.returncode == 0:
             return True, f"Ejected {vol.name}"
         return False, result.stderr.strip() or "Eject failed (unknown reason)"
@@ -185,5 +218,5 @@ def safe_eject(volume_path: str | Path, force: bool = False) -> tuple[bool, str]
         return False, "diskutil not found (only available on macOS)"
     except subprocess.TimeoutExpired:
         return False, "Eject timed out"
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001  # safety net for unexpected eject errors
         return False, f"Eject error: {exc}"

@@ -1,19 +1,17 @@
 """Tests for categories.py — category definitions, YAML loading, and validation."""
 
-from pathlib import Path
-
 import pytest
 import yaml
 
 from cull.categories import (
     DEFAULT_CATEGORIES,
     IMAGE_CATEGORIES,
-    VIDEO_CATEGORIES,
-    validate_categories,
     NON_CLIP_CATEGORIES,
+    VIDEO_CATEGORIES,
     VIDEO_CATEGORY_NAMES,
     load_categories_yaml,
     merge_with_defaults,
+    validate_categories,
 )
 
 
@@ -59,12 +57,16 @@ class TestYAMLLoading:
     def test_load_categories(self, temp_dir):
         """Should parse a valid YAML categories file."""
         yaml_path = temp_dir / "cats.yaml"
-        yaml_path.write_text(yaml.dump({
-            "categories": {
-                "cat": ["a photo of a cat"],
-                "dog": ["a photo of a dog", "a canine"],
-            }
-        }))
+        yaml_path.write_text(
+            yaml.dump(
+                {
+                    "categories": {
+                        "cat": ["a photo of a cat"],
+                        "dog": ["a photo of a dog", "a canine"],
+                    }
+                }
+            )
+        )
         result = load_categories_yaml(yaml_path)
         assert "cat" in result
         assert result["cat"] == ["a photo of a cat"]

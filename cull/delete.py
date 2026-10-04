@@ -75,7 +75,7 @@ def delete_report(report_path: str, dry_run: bool = True) -> None:
         report = json.load(f)
 
     total = 0
-    for cat, info in report.get("categories", {}).items():
+    for info in report.get("categories", {}).values():
         for fp in info.get("files", []):
             p = Path(fp)
             if not p.exists():
@@ -86,4 +86,6 @@ def delete_report(report_path: str, dry_run: bool = True) -> None:
             else:
                 p.unlink()
 
-    print(f"\n{'Dry run — ' if dry_run else ''}{total} files {'would be ' if dry_run else ''}deleted")
+    print(
+        f"\n{'Dry run — ' if dry_run else ''}{total} files {'would be ' if dry_run else ''}deleted"
+    )

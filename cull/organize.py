@@ -36,18 +36,19 @@ def organize_by_category(
         dry_run: If True, only print what would happen.
         include_unclassified: Also organise files in the ``unclassified`` bucket.
     """
-    report_path = Path(report_path)
-    if not report_path.exists():
-        print(f"Report not found: {report_path}")
+    report_path_obj = Path(report_path)
+    if not report_path_obj.exists():
+        print(f"Report not found: {report_path_obj}")
         return
 
     if output_dir is None:
-        output_dir = report_path.parent
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = report_path_obj.parent
+    else:
+        output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
 
     # Mount validation — warn if target is on an external volume about to disappear
-    valid, msg = validate_mount(output_dir)
+    valid, msg = validate_mount(output_path)
     if not valid:
         print(f"⚠️  Warning — output directory may be unreachable: {msg}")
 
@@ -59,7 +60,7 @@ def organize_by_category(
         if cat == "unclassified" and not include_unclassified:
             continue
 
-        cat_dir = _cat_dir(output_dir, cat)
+        cat_dir = _cat_dir(output_path, cat)
         cat_dir.mkdir(parents=True, exist_ok=True)
 
         for fp in info.get("files", []):
@@ -90,6 +91,8 @@ def organize_by_category(
                     print(f"  [error] {fp} → {dest}: {exc}")
 
     tag = "Dry run — " if dry_run else ""
-    print(f"\n{tag}{total} files would be {'copied' if copy else 'moved'} to {output_dir}")
+    print(
+        f"\n{tag}{total} files would be {'copied' if copy else 'moved'} to {output_path}"
+    )
     if dry_run:
         print("Run with --execute to actually move/copy files.")

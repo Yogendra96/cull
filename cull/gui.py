@@ -15,9 +15,9 @@ from pathlib import Path
 import gradio as gr
 
 from cull.categories import DEFAULT_CATEGORIES
-from cull.classify import classify_directory, collect_files
+from cull.classify import classify_directory
 from cull.report import generate_report, save_report
-from cull.volumes import list_volumes, safe_eject, format_volume_summary
+from cull.volumes import format_volume_summary, list_volumes, safe_eject
 
 # ── Styles ───────────────────────────────────────────────────────────
 
@@ -29,19 +29,43 @@ footer { display: none !important; }
 
 # ── Classify tab logic ───────────────────────────────────────────────
 
+
 def _find_images(path: str) -> list[str]:
     """Return sorted list of image paths under *path*."""
     p = Path(path)
     if not p.is_dir():
         return []
-    return sorted(str(f) for f in p.rglob("*") if f.is_file() and f.suffix.lower() in {
-        ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp",
-        ".tiff", ".tif", ".heic", ".heif", ".avif", ".jxl",
-    })
+    return sorted(
+        str(f)
+        for f in p.rglob("*")
+        if f.is_file()
+        and f.suffix.lower()
+        in {
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".gif",
+            ".webp",
+            ".bmp",
+            ".tiff",
+            ".tif",
+            ".heic",
+            ".heif",
+            ".avif",
+            ".jxl",
+        }
+    )
 
 
-def _do_classify(folder: str, threshold: float, model_choice: str, progress=gr.Progress()):
+def _do_classify(
+    folder: str,
+    threshold: float,
+    model_choice: str,
+    progress: gr.Progress | None = None,
+):
     """Run classification and return (summary_text, report_path, gallery_items)."""
+    if progress is None:
+        progress = gr.Progress()
     if not folder or not Path(folder).is_dir():
         return "Invalid folder path", None, None
 
@@ -53,7 +77,9 @@ def _do_classify(folder: str, threshold: float, model_choice: str, progress=gr.P
         "Fast (ViT-B-32)": ("ViT-B-32", "laion2b_s34b_b79k"),
         "Accurate (ViT-L-14)": ("ViT-L-14", "laion2b_s32b_b82k"),
     }
-    model_name, pretrained = model_map.get(model_choice, ("ViT-B-32", "laion2b_s34b_b79k"))
+    model_name, pretrained = model_map.get(
+        model_choice, ("ViT-B-32", "laion2b_s34b_b79k")
+    )
 
     yield f"Found {len(images)} images\nLoading model {model_choice}...", None, None
 
@@ -63,7 +89,8 @@ def _do_classify(folder: str, threshold: float, model_choice: str, progress=gr.P
         progress(current / total, desc=f"Classifying {current}/{total}")
 
     results = classify_directory(
-        images, labels,
+        images,
+        labels,
         batch_size=32,
         model_name=model_name,
         pretrained=pretrained,
@@ -153,7 +180,7 @@ def _delete_selected(report_path: str, gallery_selection: list, category: str):
 
     msg = f"Deleted {count} file(s)"
     # Reload report to update gallery
-    new_info, new_gallery, _ = _load_report(report_path)
+    _, new_gallery, _ = _load_report(report_path)
     return msg, new_gallery
 
 
@@ -223,7 +250,9 @@ with gr.Blocks(title="cull") as app:
         )
 
         with gr.Row():
-            cat_filter = gr.Dropdown(choices=["all"], label="Filter category", value="all", scale=3)
+            cat_filter = gr.Dropdown(
+                choices=["all"], label="Filter category", value="all", scale=3
+            )
             del_btn = gr.Button("🗑️ Delete selected", variant="stop", scale=1)
         del_output = gr.Textbox(label="Delete status", lines=1)
 
@@ -273,7 +302,9 @@ with gr.Blocks(title="cull") as app:
             vols = list_volumes()
             choices = [v["name"] for v in vols] or ["(none detected)"]
             summary = format_volume_summary()
-            return summary, gr.Dropdown(choices=choices, value=choices[0] if choices else None)
+            return summary, gr.Dropdown(
+                choices=choices, value=choices[0] if choices else None
+            )
 
         refresh_btn.click(
             fn=_refresh_and_update,

@@ -38,7 +38,7 @@ def sample_report(temp_dir):
         },
     }
     # Create dummy files so organise tests can verify moves
-    for cat, info in report["categories"].items():
+    for info in report["categories"].values():
         for fp in info["files"]:
             Path(fp).write_text("fake-image-data")
 

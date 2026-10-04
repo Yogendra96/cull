@@ -1,8 +1,6 @@
 """Tests for cleanup.py — duplicate report and deletion logic."""
 
-from pathlib import Path
-
-from cull.cleanup import report_duplicates, delete_duplicates
+from cull.cleanup import delete_duplicates, report_duplicates
 
 
 class TestReportDuplicates:
@@ -88,7 +86,7 @@ class TestDeleteDuplicates:
 
     def test_list_strategy_does_not_delete(self, sample_duplicates_dir):
         """'list' strategy should not remove files."""
-        result = delete_duplicates(
+        delete_duplicates(
             str(sample_duplicates_dir),
             strategy="list",
             dry_run=False,

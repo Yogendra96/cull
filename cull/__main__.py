@@ -23,8 +23,8 @@ import fire
 
 from cull import config
 
-
 # ── Subcommand: classify ─────────────────────────────────────────────
+
 
 def classify(
     path: str,
@@ -48,8 +48,12 @@ def classify(
         include_media: Also classify videos and PDFs.
         categories_file: Optional YAML file with custom category definitions.
     """
-    from cull.classify import collect_files, classify_directory
-    from cull.categories import DEFAULT_CATEGORIES, load_categories_yaml, merge_with_defaults
+    from cull.categories import (
+        DEFAULT_CATEGORIES,
+        load_categories_yaml,
+        merge_with_defaults,
+    )
+    from cull.classify import classify_directory, collect_files
     from cull.report import generate_report, print_summary, save_report
     from cull.volumes import validate_mount
 
@@ -71,11 +75,14 @@ def classify(
         print(f"No processable files found in {path}")
         return
 
-    print(f"Found {len(image_paths)} files ({'with' if include_media else 'images only'})")
+    print(
+        f"Found {len(image_paths)} files ({'with' if include_media else 'images only'})"
+    )
     print(f"Using model: {model} ({pretrained})")
 
     results = classify_directory(
-        image_paths, labels,
+        image_paths,
+        labels,
         batch_size=batch_size,
         model_name=model,
         pretrained=pretrained,
@@ -89,9 +96,10 @@ def classify(
 
 # ── Subcommand: organise ─────────────────────────────────────────────
 
+
 def organize(
     report: str = str(config.DEFAULT_REPORT),
-    output_dir: str = None,
+    output_dir: str | None = None,
     copy: bool = False,
     execute: bool = False,
     include_unclassified: bool = True,
@@ -106,6 +114,7 @@ def organize(
         include_unclassified: Also organise unclassified files.
     """
     from cull.organize import organize_by_category
+
     organize_by_category(
         report,
         output_dir=output_dir,
@@ -117,9 +126,10 @@ def organize(
 
 # ── Subcommand: dedup ────────────────────────────────────────────────
 
+
 def dedup(
     path: str,
-    dupes_dir: str = None,
+    dupes_dir: str | None = None,
     execute: bool = False,
 ) -> None:
     """Find and remove duplicate images using perceptual hashing.
@@ -130,15 +140,17 @@ def dedup(
         execute: Actually move duplicates (default is dry-run).
     """
     from cull.dedup import deduplicate
+
     deduplicate(path, dupes_dir=dupes_dir, dry_run=not execute)
 
 
 # ── Subcommand: cleanup ──────────────────────────────────────────────
 
+
 def cleanup(
-    dupes_dir: str = None,
+    dupes_dir: str | None = None,
     strategy: str = "trash",
-    category: str = None,
+    category: str | None = None,
     execute: bool = False,
 ) -> None:
     """Remove or report on duplicate files previously moved by ``dedup``.
@@ -150,7 +162,7 @@ def cleanup(
         category: Only clean a specific category folder (e.g. 'screenshot').
         execute: Actually clean (default is dry-run report-only).
     """
-    from cull.cleanup import report_duplicates, delete_duplicates
+    from cull.cleanup import delete_duplicates, report_duplicates
 
     if not execute:
         print("=== Duplicate summary ===")
@@ -158,9 +170,13 @@ def cleanup(
         if summary["total_files"] == 0:
             print("  No duplicates found.")
             return
-        for cat, info in sorted(summary["categories"].items(), key=lambda x: -x[1]["files"]):
+        for cat, info in sorted(
+            summary["categories"].items(), key=lambda x: -x[1]["files"]
+        ):
             print(f"  {cat}: {info['files']} files, {info['bytes'] / 1_000_000:.1f} MB")
-        print(f"\n  Total: {summary['total_files']} files, {summary['total_bytes'] / 1_000_000:.1f} MB")
+        print(
+            f"\n  Total: {summary['total_files']} files, {summary['total_bytes'] / 1_000_000:.1f} MB"
+        )
         print("\nRun with --execute --strategy <trash|delete> to clean up.")
         return
 
@@ -174,9 +190,10 @@ def cleanup(
 
 # ── Subcommand: volumes ──────────────────────────────────────────────
 
+
 def volumes(
     list_only: bool = False,
-    eject: str = None,
+    eject: str | None = None,
     force: bool = False,
 ) -> None:
     """List, inspect, or eject external volumes.
@@ -186,7 +203,7 @@ def volumes(
         eject: Name or path of a volume to eject.
         force: Force eject even if volume is busy.
     """
-    from cull.volumes import list_volumes, format_volume_summary, safe_eject
+    from cull.volumes import format_volume_summary, list_volumes, safe_eject
 
     vols = list_volumes()
 
@@ -208,7 +225,8 @@ def volumes(
 
 # ── Subcommand: categories ───────────────────────────────────────────
 
-def categories(path: str = None) -> None:
+
+def categories(path: str | None = None) -> None:
     """Print available category labels."""
     from cull.categories import DEFAULT_CATEGORIES, validate_categories
 
@@ -225,26 +243,39 @@ def categories(path: str = None) -> None:
 
 # ── Subcommand: gui ──────────────────────────────────────────────────
 
+
 def gui() -> None:
     """Launch the Gradio web interface."""
     import gradio as gr
-    from cull.gui import app, CSS
+
+    from cull.gui import CSS, app
+
     app.launch(show_error=True, css=CSS, theme=gr.themes.Soft())
 
 
 # ── Subcommand: browse ───────────────────────────────────────────────
 
+
 def browse(report: str = str(config.DEFAULT_REPORT)) -> None:
     """Launch interactive Streamlit report viewer."""
     viewer = Path(__file__).parent / "browse.py"
-    subprocess.run([sys.executable, "-m", "streamlit", "run", str(viewer), "--", report])
+    subprocess.run(
+        [sys.executable, "-m", "streamlit", "run", str(viewer), "--", report],
+        check=True,
+    )
 
 
 # ── Subcommand: delete (legacy) ──────────────────────────────────────
 
-def delete(report: str = str(config.DEFAULT_REPORT), category: str = None, dry_run: bool = True):
+
+def delete(
+    report: str = str(config.DEFAULT_REPORT),
+    category: str | None = None,
+    dry_run: bool = True,
+):
     """Delete files from a category in the report."""
     from cull.delete import delete_category, delete_report
+
     if category:
         delete_category(report, category, dry_run=dry_run)
     else:
@@ -252,6 +283,7 @@ def delete(report: str = str(config.DEFAULT_REPORT), category: str = None, dry_r
 
 
 # ── Entry point ──────────────────────────────────────────────────────
+
 
 def _setup_logging() -> None:
     level = os.environ.get("LOG_LEVEL", "WARNING").upper()
@@ -265,23 +297,26 @@ def _setup_logging() -> None:
 def version() -> None:
     """Print the installed cull version."""
     from cull import __version__
+
     print(f"cull v{__version__}")
 
 
 def main() -> None:
     _setup_logging()
-    fire.Fire({
-        "classify": classify,
-        "organize": organize,
-        "dedup": dedup,
-        "cleanup": cleanup,
-        "volumes": volumes,
-        "categories": categories,
-        "gui": gui,
-        "browse": browse,
-        "delete": delete,
-        "version": version,
-    })
+    fire.Fire(
+        {
+            "classify": classify,
+            "organize": organize,
+            "dedup": dedup,
+            "cleanup": cleanup,
+            "volumes": volumes,
+            "categories": categories,
+            "gui": gui,
+            "browse": browse,
+            "delete": delete,
+            "version": version,
+        }
+    )
 
 
 if __name__ == "__main__":

@@ -22,12 +22,13 @@ cull gui                           # → Gradio web interface
 cull/
 ├── pyproject.toml           # Package config (MIT, dependencies)
 ├── README.md
+├── CHANGELOG.md
 ├── LICENSE
 ├── cull/
 │   ├── __init__.py
 │   ├── __main__.py          # CLI entry — fire, thin dispatch
 │   ├── config.py            # Centralized constants & defaults
-│   ├── categories.py        # Category definitions + prompts
+│   ├── categories.py        # Category definitions + prompts (+ YAML loading)
 │   ├── media.py             # File type detection + volume utilities (single source of truth)
 │   ├── models.py            # CLIP model loading & inference (module-level cache)
 │   ├── classify.py          # Classification service — scans dirs, runs CLIP
@@ -35,12 +36,11 @@ cull/
 │   ├── dedup.py             # Duplicate detection — perceptual hashing (dhash)
 │   ├── cleanup.py           # Duplicate cleanup — trash/delete/report
 │   ├── volumes.py           # External drive support — list, mount-check, eject
-│   ├── reporter.py          # Report generation — JSON + rich terminal table
+│   ├── report.py            # Report generation — JSON + rich terminal table
 │   ├── gui.py               # Gradio web interface (fully wired)
 │   ├── browse.py            # Streamlit report viewer
 │   └── delete.py            # Legacy bulk-delete by category
-├── scripts/                 # One-shot runners
-└── tests/                   # Unit tests
+└── tests/                   # Unit tests (92)
 ```
 
 ## Architecture
@@ -78,11 +78,11 @@ cull/
 
 ### External drive support
 
-- **Auto-discovery:** `cull volumes` lists all mounted external drives under `/Volumes`
+- **Auto-discovery:** `cull volumes` lists mounted external drives
 - **Mount validation:** Every command checks the target path is reachable before starting
 - **GUI volume picker:** The Gradio interface has a dedicated "Volumes" tab with refresh and eject
-- **Safe eject:** `cull volumes --eject MyUSB` runs `diskutil eject`
-- **Cross-platform:** Falls back to `/media` / `/mnt` on Linux
+- **Safe eject:** `cull volumes --eject MyUSB` runs `diskutil eject` (macOS)
+- **Cross-platform:** `/Volumes` (macOS), `/media` + `/mnt` (Linux), removable drive letters (Windows)
 
 ### CLI Commands
 
@@ -91,21 +91,22 @@ cull/
 | `cull classify <path>` | Scan & classify images with CLIP |
 | `cull organize [--execute]` | Move files into category folders |
 | `cull dedup <path> [--execute]` | Find & move near-duplicates |
-| `cull cleanup [--strategy trash] [--execute]` | Remove/trash duplicates |
+| `cull cleanup [--strategy trash\|delete\|list] [--execute]` | Remove/trash duplicates |
 | `cull volumes [--eject NAME]` | List & eject external drives |
 | `cull gui` | Launch Gradio web UI |
 | `cull browse [--report]` | Launch Streamlit report viewer |
 | `cull categories` | Print available category labels |
 | `cull delete --category X` | Legacy bulk-delete by category |
+| `cull version` | Print version |
 
 ## Build Order
 
 ### Phase 1 — Core ✅
 1. `pyproject.toml` — deps
-2. `categories.py` — ~22 category labels + prompts
+2. `categories.py` — 21 category labels + prompts
 3. `models.py` — CLIP load + inference
 4. `classify.py` — scan dirs, run CLIP, handle videos/PDFs
-5. `reporter.py` — JSON report + rich terminal table
+5. `report.py` — JSON report + rich terminal table
 6. `__main__.py` — wire CLI via fire
 
 ### Phase 2 — Organisation ✅
@@ -118,8 +119,12 @@ cull/
 11. `volumes.py` — auto-detect, validate, eject external drives
 12. `cleanup.py` — duplicate cleanup strategies
 
-### Phase 4 — Polish (future)
-13. README, LICENSE, PyPI publish
+### Phase 4 — Polish ✅
+13. README, LICENSE, CHANGELOG
 14. User-defined categories via YAML config
-15. YOLO integration for object detection
-16. Frame-level video hashing (vs size-based fallback)
+15. Frame-level video hashing (replaces size-only fallback)
+16. Windows drive-letter detection
+
+### Phase 5 — Future
+17. PyPI publish
+18. YOLO integration for object detection
