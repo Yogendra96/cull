@@ -180,13 +180,15 @@ def verify_duplicates(
         print("Error: no valid reference paths given.")
         return {}
 
-    # Every reference must be reachable before we trust it.
+    # Every reference must be reachable and be a directory before we trust it.
     for root in roots:
+        if not root.is_dir():
+            print(f"⚠️  Reference unavailable: {root} (not an existing directory)")
+            return {}
         valid, msg = validate_mount(str(root))
-        if not valid or not root.exists():
+        if not valid:
             print(f"⚠️  Reference unavailable: {root} ({msg})")
-            if not root.exists():
-                return {}
+            return {}
 
     quarantine_path = (
         Path(quarantine).expanduser()

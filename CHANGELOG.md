@@ -2,7 +2,7 @@
 
 All notable changes to **cull** are documented in this file.
 
-## [Unreleased]
+## [0.3.0] — 2026-11-03
 
 ### Added
 - **`verify` command** — confirms every duplicate is byte-identical (SHA-256) to a file in a reference tree (external drive, backup) before removal. Perceptual `dedup` output is treated as untrusted: unverified files are preserved in a quarantine folder instead of being deleted. Supports `--against` (one or more comma-separated roots), `--strategy trash|delete|list`, `--quarantine`, `--workers`, and a JSON report.

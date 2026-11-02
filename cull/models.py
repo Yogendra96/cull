@@ -6,7 +6,8 @@ loaded weights without re-initialising.
 """
 
 import logging
-from typing import Callable, Optional
+from collections.abc import Callable
+
 import open_clip
 import torch
 from PIL import Image

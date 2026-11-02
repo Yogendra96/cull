@@ -4,7 +4,7 @@ Classify, organise, deduplicate, and clean up messy image collections
 using CLIP zero-shot vision.  Runs on macOS, Linux, and Windows.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __license__ = "MIT"
 
 # Re-export key symbols for convenient ``from cull import X`` usage.

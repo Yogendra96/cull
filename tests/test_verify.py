@@ -160,3 +160,16 @@ def test_requires_against(tmp_path):
     dupes = tmp_path / "dupes"
     _make(dupes / "a.bin", b"AAAA")
     assert verify_duplicates(dupes_dir=str(dupes), against=None) == {}
+
+
+def test_reference_must_be_a_directory(tmp_path):
+    """A regular file passed as --against is rejected, not silently indexed."""
+    dupes = tmp_path / "dupes"
+    _make(dupes / "a.bin", b"AAAA")
+    ref_file = _make(tmp_path / "ref.iso", b"AAAA")
+    result = verify_duplicates(
+        dupes_dir=str(dupes),
+        against=str(ref_file),
+        report=str(tmp_path / "r.json"),
+    )
+    assert result == {}

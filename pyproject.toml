@@ -1,6 +1,6 @@
 [project]
 name = "cull"
-version = "0.2.0"
+version = "0.3.0"
 description = "AI-powered orphan image cleaner — classify, organise, deduplicate, and clean up image collections using CLIP zero-shot vision"
 readme = "README.md"
 license = { text = "MIT" }
