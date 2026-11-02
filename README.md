@@ -14,6 +14,7 @@
 cull classify ~/Downloads/messy/          # scan & classify with CLIP
 cull organize --execute                   # sort into category folders
 cull dedup sorted/ --execute              # move near-duplicates aside
+cull verify --against /Volumes/Backup    # prove they exist elsewhere first
 cull cleanup --strategy trash --execute   # reclaim disk space from duplicates
 cull volumes                              # list external drives
 cull gui                                  # launch web interface
@@ -27,6 +28,7 @@ cull gui                                  # launch web interface
 - **21 categories** — person, screenshot, meme, document, food, landscape, animal, NSFW, video call, etc. (plus PDF by extension)
 - **Custom categories** — extend or override the built-ins with a YAML file
 - **Perceptual dedup** — `imagehash.dhash` on images; videos hashed via an extracted frame
+- **Exact verification** — `verify` confirms duplicates by SHA-256 against an external drive or backup before deleting; anything without a byte-identical copy is preserved
 - **External drive support** — auto-detect mounted volumes (macOS / Linux / Windows), mount validation before every run, safe eject on macOS
 - **Cleanup strategies** — trash, permanent delete, or list-only, optionally per category
 - **Dry-run by default** — every destructive operation requires explicit `--execute`
@@ -53,6 +55,12 @@ cull organize --execute
 
 # Find and move near-duplicates
 cull dedup ./orphans_sorted/ --execute
+
+# Prove each duplicate still exists byte-for-byte on a drive/backup
+cull verify --against /Volumes/Backup
+
+# Actually remove verified copies (unverified ones are quarantined)
+cull verify --against /Volumes/Backup --execute --strategy trash
 
 # See what you could clean up
 cull cleanup
@@ -85,6 +93,7 @@ cull volumes --eject MyUSB            # safe eject when done
 | `classify <path>` | Scan & classify images with CLIP | `--threshold 0.3` |
 | `organize` | Move/copy into category folders | dry-run |
 | `dedup <path>` | Find & move near-duplicates | dry-run |
+| `verify --against X` | SHA-256 verify duplicates exist elsewhere (`--strategy trash\|delete\|list`, `--quarantine DIR`) | dry-run, `--strategy trash` |
 | `cleanup` | Remove/trash duplicates (`--strategy trash\|delete\|list`, `--category X`) | dry-run, `--strategy trash` |
 | `volumes [--eject X]` | List & eject external drives | — |
 | `gui` | Launch Gradio web interface | — |
@@ -103,6 +112,23 @@ cull volumes --eject MyUSB            # safe eject when done
 | `--pretrained` | `laion2b_s34b_b79k` | Weights tag |
 | `--include-media` | `False` | Also classify videos and PDFs |
 | `--categories` | `None` | YAML file with custom category definitions |
+
+### verify options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--against` | *(required)* | Reference tree(s); comma-separate multiple paths |
+| `--dupes_dir` | `~/duplicates/duplicates` | Duplicates folder to verify |
+| `--execute` | `False` | Remove verified files (dry-run otherwise) |
+| `--strategy` | `trash` | `trash`, `delete`, or `list` |
+| `--quarantine` | `../duplicates_unverified` | Where unverified files are preserved |
+| `--report` | `cull_verify_report.json` | JSON report path |
+| `--workers` | `8` | Hashing threads |
+
+`verify` treats `dedup` output as untrusted: perceptual hashing groups
+*similar* images, so only exact SHA-256 matches against `--against` are
+considered safe to remove. Files without a byte-identical twin elsewhere
+are moved to quarantine rather than deleted.
 
 ### Custom categories
 

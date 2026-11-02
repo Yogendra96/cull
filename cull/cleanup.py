@@ -150,7 +150,7 @@ def delete_duplicates(
     for f in targets:
         try:
             if strategy == "trash":
-                _send_to_trash(f)
+                send_to_trash(f)
             elif strategy == "delete":
                 f.unlink()
             elif strategy == "list":
@@ -174,7 +174,7 @@ def _resolve_dupes_dir(dupes_dir: str | None) -> Path:
     return config.DUPLICATES_DIR
 
 
-def _send_to_trash(path: Path) -> None:
+def send_to_trash(path: Path) -> None:
     """Move a file to the macOS Trash (``~/.Trash``)."""
     trash_dir = Path.home() / ".Trash"
     trash_dir.mkdir(parents=True, exist_ok=True)
@@ -185,3 +185,7 @@ def _send_to_trash(path: Path) -> None:
         suffix = path.suffix
         dest = trash_dir / f"{stem}_{hash(path)}{suffix}"
     shutil.move(str(path), str(dest))
+
+
+# Backwards-compatible alias for the old private name.
+_send_to_trash = send_to_trash

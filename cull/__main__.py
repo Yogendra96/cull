@@ -188,6 +188,48 @@ def cleanup(
     )
 
 
+# ── Subcommand: verify ───────────────────────────────────────────────
+
+
+def verify(
+    dupes_dir: str | None = None,
+    against: str | None = None,
+    execute: bool = False,
+    strategy: str = "trash",
+    quarantine: str | None = None,
+    report: str = str(config.DEFAULT_VERIFY_REPORT),
+    workers: int = config.DEFAULT_HASH_WORKERS,
+) -> None:
+    """Verify duplicates are byte-identical copies before removing them.
+
+    ``dedup`` uses perceptual hashing, so its output can contain merely
+    *similar* files.  ``verify`` confirms each file with SHA-256 against a
+    reference tree (e.g. an external drive) and preserves anything without
+    an exact match.
+
+    Args:
+        dupes_dir: Duplicates folder (default: ~/duplicates/duplicates).
+        against: Reference tree(s); comma-separate to pass several paths.
+        execute: Remove verified files (default is dry-run).
+        strategy: One of 'trash' (macOS Trash), 'delete' (permanent),
+            or 'list' (print paths).
+        quarantine: Where unverified files are preserved.
+        report: Output JSON report path.
+        workers: Hashing thread count.
+    """
+    from cull.verify import verify_duplicates
+
+    verify_duplicates(
+        dupes_dir=dupes_dir,
+        against=against,
+        execute=execute,
+        strategy=strategy,
+        quarantine=quarantine,
+        report=report,
+        workers=workers,
+    )
+
+
 # ── Subcommand: volumes ──────────────────────────────────────────────
 
 
@@ -308,6 +350,7 @@ def main() -> None:
             "classify": classify,
             "organize": organize,
             "dedup": dedup,
+            "verify": verify,
             "cleanup": cleanup,
             "volumes": volumes,
             "categories": categories,

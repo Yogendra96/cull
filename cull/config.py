@@ -51,6 +51,21 @@ DUPLICATES_DIR = DUPLICATES_ROOT / "duplicates"
 """Where the duplicate files were moved."""
 
 
+# ── Exact-match verification ─────────────────────────────────────────
+
+DEFAULT_VERIFY_REPORT = Path("cull_verify_report.json")
+"""Default report filename created by ``verify``."""
+
+DEFAULT_QUARANTINE_DIR_NAME = "duplicates_unverified"
+"""Sibling folder where ``verify`` preserves files without an exact match."""
+
+DEFAULT_HASH_WORKERS = 8
+"""Thread count used when hashing files for exact-match verification."""
+
+JUNK_FILENAMES = frozenset({".DS_Store", "Thumbs.db", "desktop.ini"})
+"""OS metadata files ignored by verification."""
+
+
 # ── Category file (future: user-defined categories from YAML) ────────
 
 CATEGORY_CONFIG_PATH = Path.home() / ".cull" / "categories.yaml"
