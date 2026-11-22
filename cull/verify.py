@@ -27,6 +27,7 @@ from pathlib import Path
 
 from cull import config
 from cull.cleanup import send_to_trash
+from cull.progress import Progress, estimate_line
 from cull.volumes import validate_mount
 
 logger = logging.getLogger("cull.verify")
@@ -50,14 +51,22 @@ def sha256_file(path: Path) -> str | None:
         return None
 
 
-def _hash_many(paths: Sequence[Path], workers: int) -> dict[Path, str | None]:
+def _hash_many(
+    paths: Sequence[Path],
+    workers: int,
+    progress: Progress | None = None,
+) -> dict[Path, str | None]:
     """Hash several files concurrently (I/O bound)."""
     if not paths:
         return {}
     workers = max(1, min(workers, len(paths)))
+    result: dict[Path, str | None] = {}
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        digests = list(pool.map(sha256_file, paths))
-    return dict(zip(paths, digests))
+        for path, digest in zip(paths, pool.map(sha256_file, paths)):
+            result[path] = digest
+            if progress is not None:
+                progress.update()
+    return result
 
 
 # ── Reference indexing ───────────────────────────────────────────────
@@ -145,6 +154,7 @@ def verify_duplicates(
     quarantine: str | None = None,
     report: str | None = None,
     workers: int = config.DEFAULT_HASH_WORKERS,
+    progress: bool = True,
 ) -> dict:
     """Verify duplicates are exact copies of files in a reference tree.
 
@@ -160,6 +170,7 @@ def verify_duplicates(
         report: Path for the JSON report.  Defaults to
             :data:`cull.config.DEFAULT_VERIFY_REPORT`.
         workers: Hashing thread count.
+        progress: Show a live progress line with elapsed time and ETA.
 
     Returns:
         The report dictionary (also written to *report*).
@@ -213,8 +224,10 @@ def verify_duplicates(
         print(f"No files to verify in {dupes_path}")
         return {}
 
-    print(f"Hashing {len(targets)} duplicate candidates with {workers} threads...")
-    target_hashes = _hash_many(targets, workers)
+    print(estimate_line(targets))
+    bar = Progress(len(targets), desc="Hashing", enabled=progress)
+    target_hashes = _hash_many(targets, workers, progress=bar)
+    bar.close()
 
     reference_hash_cache: dict[Path, str | None] = {}
     verified: list[tuple[Path, int]] = []

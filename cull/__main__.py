@@ -131,6 +131,7 @@ def dedup(
     path: str,
     dupes_dir: str | None = None,
     execute: bool = False,
+    progress: bool = True,
 ) -> None:
     """Find and remove duplicate images using perceptual hashing.
 
@@ -138,10 +139,11 @@ def dedup(
         path: Directory to scan for duplicates.
         dupes_dir: Where to move duplicates (default: ../duplicates/).
         execute: Actually move duplicates (default is dry-run).
+        progress: Show progress with elapsed time and ETA (default: on).
     """
     from cull.dedup import deduplicate
 
-    deduplicate(path, dupes_dir=dupes_dir, dry_run=not execute)
+    deduplicate(path, dupes_dir=dupes_dir, dry_run=not execute, progress=progress)
 
 
 # ── Subcommand: cleanup ──────────────────────────────────────────────
@@ -199,6 +201,7 @@ def verify(
     quarantine: str | None = None,
     report: str = str(config.DEFAULT_VERIFY_REPORT),
     workers: int = config.DEFAULT_HASH_WORKERS,
+    progress: bool = True,
 ) -> None:
     """Verify duplicates are byte-identical copies before removing them.
 
@@ -216,6 +219,7 @@ def verify(
         quarantine: Where unverified files are preserved.
         report: Output JSON report path.
         workers: Hashing thread count.
+        progress: Show progress with elapsed time and ETA (default: on).
     """
     from cull.verify import verify_duplicates
 
@@ -227,6 +231,7 @@ def verify(
         quarantine=quarantine,
         report=report,
         workers=workers,
+        progress=progress,
     )
 
 

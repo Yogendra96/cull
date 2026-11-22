@@ -173,3 +173,20 @@ def test_reference_must_be_a_directory(tmp_path):
         report=str(tmp_path / "r.json"),
     )
     assert result == {}
+
+
+def test_verify_prints_estimate_and_eta(tmp_path, capsys):
+    dupes = tmp_path / "dupes"
+    ref = tmp_path / "ref"
+    _make(dupes / "a.bin", b"AAA")
+    _make(ref / "x.bin", b"AAA")
+
+    verify_duplicates(
+        dupes_dir=str(dupes),
+        against=str(ref),
+        report=str(tmp_path / "r.json"),
+    )
+
+    out = capsys.readouterr().out
+    assert "Estimated time:" in out
+    assert "ETA" in out

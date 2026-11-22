@@ -9,6 +9,7 @@ approximation.
 
 import logging
 import shutil
+import time
 from collections import defaultdict
 from pathlib import Path
 
@@ -21,6 +22,7 @@ from cull.media import (
     is_video,
     should_skip,
 )
+from cull.progress import Progress, estimate_line, format_duration
 from cull.volumes import validate_mount
 
 logger = logging.getLogger("cull.dedup")
@@ -83,6 +85,7 @@ def deduplicate(
     scan_dir: str,
     dupes_dir: str | None = None,
     dry_run: bool = True,
+    progress: bool = True,
 ) -> None:
     """Find near-duplicate images under *scan_dir* and move them out.
 
@@ -94,6 +97,7 @@ def deduplicate(
         dupes_dir: Where to move duplicates.  Defaults to ``../duplicates/``
             relative to *scan_dir*.
         dry_run: If True, only print what would happen (default).
+        progress: Show a live progress line with elapsed time and ETA.
     """
     scan_path = Path(scan_dir)
     if not scan_path.exists():
@@ -116,6 +120,10 @@ def deduplicate(
     )
 
     print(f"Scanning {len(all_files)} files in {scan_path}...")
+    print(estimate_line(all_files))
+
+    started = time.monotonic()
+    bar = Progress(len(all_files), desc="Hashing", enabled=progress)
 
     # Group by hash
     by_hash: dict[str, list[Path]] = defaultdict(list)
@@ -125,8 +133,13 @@ def deduplicate(
         if h is not None:
             by_hash[h].append(f)
             hashed += 1
+        bar.update()
+    bar.close()
 
-    print(f"Hashed {hashed} files, {len(by_hash)} unique hashes.")
+    print(
+        f"Hashed {hashed} files, {len(by_hash)} unique hashes "
+        f"in {format_duration(time.monotonic() - started)}."
+    )
 
     # Identify duplicates (second+ occurrence per hash)
     dupes_found = 0

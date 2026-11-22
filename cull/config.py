@@ -66,6 +66,21 @@ JUNK_FILENAMES = frozenset({".DS_Store", "Thumbs.db", "desktop.ini"})
 """OS metadata files ignored by verification."""
 
 
+# ── Progress / ETA ───────────────────────────────────────────────────
+
+ESTIMATE_IMAGES_PER_SEC = 120
+"""Planning throughput for images (dhash). Real speed depends on disk I/O."""
+
+ESTIMATE_VIDEOS_PER_SEC = 2
+"""Planning throughput for videos (ffmpeg frame extraction)."""
+
+ESTIMATE_OTHER_PER_SEC = 500
+"""Planning throughput for PDFs and other quickly-keyed files."""
+
+PROGRESS_INTERVAL_SECONDS = 2.0
+"""Minimum seconds between progress lines (avoids flooding output)."""
+
+
 # ── Category file (future: user-defined categories from YAML) ────────
 
 CATEGORY_CONFIG_PATH = Path.home() / ".cull" / "categories.yaml"

@@ -2,6 +2,11 @@
 
 All notable changes to **cull** are documented in this file.
 
+## [Unreleased]
+
+### Added
+- **Progress + ETA** — `dedup` and `verify` print an upfront time estimate based on file types, then a live `elapsed / rate / ETA` line during hashing (works in a TTY and in logs). Disable with `--progress=False`. New `cull.progress` module (`Progress`, `estimate_seconds`, `format_duration`).
+
 ## [0.3.0] — 2026-11-03
 
 ### Added

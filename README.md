@@ -29,6 +29,7 @@ cull gui                                  # launch web interface
 - **Custom categories** — extend or override the built-ins with a YAML file
 - **Perceptual dedup** — `imagehash.dhash` on images; videos hashed via an extracted frame
 - **Exact verification** — `verify` confirms duplicates by SHA-256 against an external drive or backup before deleting; anything without a byte-identical copy is preserved
+- **Progress + ETA** — long hashing passes print an upfront time estimate and a live elapsed / rate / time-remaining line
 - **External drive support** — auto-detect mounted volumes (macOS / Linux / Windows), mount validation before every run, safe eject on macOS
 - **Cleanup strategies** — trash, permanent delete, or list-only, optionally per category
 - **Dry-run by default** — every destructive operation requires explicit `--execute`
@@ -102,6 +103,9 @@ cull volumes --eject MyUSB            # safe eject when done
 | `delete --category X` | Legacy bulk-delete | dry-run |
 | `version` | Print version | — |
 
+Both `dedup` and `verify` show an upfront time estimate plus a live
+`elapsed / rate / ETA` line; pass `--progress=False` to silence it.
+
 ### classify options
 
 | Flag | Default | Description |
@@ -124,6 +128,7 @@ cull volumes --eject MyUSB            # safe eject when done
 | `--quarantine` | `../duplicates_unverified` | Where unverified files are preserved |
 | `--report` | `cull_verify_report.json` | JSON report path |
 | `--workers` | `8` | Hashing threads |
+| `--progress` | `True` | Live elapsed/rate/ETA (`--progress=False` to disable) |
 
 `verify` treats `dedup` output as untrusted: perceptual hashing groups
 *similar* images, so only exact SHA-256 matches against `--against` are
