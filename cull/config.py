@@ -68,10 +68,10 @@ JUNK_FILENAMES = frozenset({".DS_Store", "Thumbs.db", "desktop.ini"})
 
 # ── Progress / ETA ───────────────────────────────────────────────────
 
-ESTIMATE_IMAGES_PER_SEC = 120
+ESTIMATE_IMAGES_PER_SEC = 150
 """Planning throughput for images (dhash). Real speed depends on disk I/O."""
 
-ESTIMATE_VIDEOS_PER_SEC = 2
+ESTIMATE_VIDEOS_PER_SEC = 10
 """Planning throughput for videos (ffmpeg frame extraction)."""
 
 ESTIMATE_OTHER_PER_SEC = 500
